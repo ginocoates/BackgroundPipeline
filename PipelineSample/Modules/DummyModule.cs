@@ -9,14 +9,14 @@ using System.Threading.Tasks;
 
 namespace PipelineSample.Modules
 {
-    class DummyModule : IPipelineModule<KinectFrame>
+    class DummyModule : PipelineModuleBase<KinectFrame>
     {
-        public void Dispose()
+        public override void Dispose()
         {
             
         }
 
-        public KinectFrame Process(KinectFrame frame)
+        public override KinectFrame Process(KinectFrame frame)
         {
             //Debug.WriteLine("Processing Frame...");
             Thread.Sleep(5);

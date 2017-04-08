@@ -18,9 +18,7 @@ namespace BackgroundPipeline
 
         bool restrictSize;
 
-        private List<IPipelineModule<T>> modules;
-
-        public IReadOnlyCollection<IPipelineModule<T>> Modules { get { return this.modules.AsReadOnly(); } }
+        public List<IPipelineModule<T>> Modules { get; private set; }
 
         public PipelineTimer Timer { get; private set; }
 
@@ -39,7 +37,7 @@ namespace BackgroundPipeline
 
             this.restrictSize = restrictSize;
 
-            this.modules = new List<IPipelineModule<T>>();
+            this.Modules = new List<IPipelineModule<T>>();
         }
 
         public int Count
@@ -151,11 +149,6 @@ namespace BackgroundPipeline
                     System.Diagnostics.Debug.WriteLine(ex.ToString());
                 }
             }
-        }
-
-        public void AddModule(IPipelineModule<T> module)
-        {
-            this.modules.Add(module);
         }
     }
 }

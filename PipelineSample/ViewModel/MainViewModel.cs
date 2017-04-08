@@ -94,7 +94,7 @@ namespace PipelineSample.ViewModel
         {
             // create a background pipeline and pre-allocate 2 seconds of frames
             this.pipeline = new BackgroundPipeline<KinectFrame>(Kinect2Metrics.CameraRate, 60, () => this.CreateFrame(), false);
-            this.pipeline.AddModule(new DummyModule());
+            this.pipeline.Modules.Add(new DummyModule());
             pipeline.Timer.Tick += (sender, args) =>
             {
                 this.FPS = ((PipelineTimer)sender).FPS;

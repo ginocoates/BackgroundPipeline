@@ -48,12 +48,6 @@ namespace BackgroundPipeline
         /// <summary>
         /// The collection of processing modules
         /// </summary>
-        IReadOnlyCollection<IPipelineModule<T>> Modules {get;}
-
-        /// <summary>
-        /// Add a module to the pipeline
-        /// </summary>
-        /// <param name="module"></param>
-        void AddModule(IPipelineModule<T> module);
+        List<IPipelineModule<T>> Modules { get; }
     }
 }
