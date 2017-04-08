@@ -63,7 +63,7 @@ namespace BackgroundPipeline
 
             this.processingTask = Task.Factory.StartNew(() =>
             {
-                while (this.frameQueue != null && !this.frameQueue.IsCompleted && !this.frameQueue.IsAddingCompleted && !this.cancellationToken.IsCancellationRequested)
+                while (this.frameQueue != null && !this.frameQueue.IsCompleted && !this.cancellationToken.IsCancellationRequested)
                 {
                     try
                     {
@@ -77,7 +77,7 @@ namespace BackgroundPipeline
                         // return frame to the pool
                         this.FramePool.PutFrame(frame);
                     }
-                    catch (OperationCanceledException cex)
+                    catch (OperationCanceledException)
                     {
                         Debug.WriteLine("Queue processing cancelled.");
                     }
@@ -89,10 +89,14 @@ namespace BackgroundPipeline
         public void Stop()
         {
             if (!this.Timer.IsRunning) return;
-
             this.Timer.Stop();
             this.frameQueue.CompleteAdding();
-            this.cancellationToken.Cancel();
+        }
+
+        public void Abort()
+        {
+           this.cancellationToken.Cancel();
+            this.Stop();
         }
 
         private void ProcessFrame(T frame)

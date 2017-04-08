@@ -29,6 +29,11 @@ namespace BackgroundPipeline
         void Stop();
 
         /// <summary>
+        /// Abort the capture
+        /// </summary>
+        void Abort();
+
+        /// <summary>
         /// Number of frames in the queue
         /// </summary>
         int Count { get; }
