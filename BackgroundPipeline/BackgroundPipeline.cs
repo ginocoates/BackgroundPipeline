@@ -18,13 +18,15 @@ namespace BackgroundPipeline
 
         bool restrictSize;
 
+        public event EventHandler<T> FrameComplete;
+
         public List<IPipelineModule<T>> Modules { get; private set; }
 
         public PipelineTimer Timer { get; private set; }
 
         public FramePool<T> FramePool { get; private set; }
 
-        public BackgroundPipeline(int frequencyHz, int poolSize, Func<T> frameGenerator, bool restrictSize)
+        public BackgroundPipeline(int frequencyHz, int poolSize, Func<T> frameGenerator)
         {
             if (poolSize <= 0)
             {
@@ -34,9 +36,7 @@ namespace BackgroundPipeline
             this.Timer = new PipelineTimer(frequencyHz);
 
             this.FramePool = new FramePool<T>(frameGenerator, poolSize);
-
-            this.restrictSize = restrictSize;
-
+            
             this.Modules = new List<IPipelineModule<T>>();
         }
 
@@ -72,10 +72,7 @@ namespace BackgroundPipeline
 
                         if (!this.frameQueue.TryTake(out frame, -1, this.cancellationToken.Token)) continue;
 
-                        ProcessFrame(frame);
-
-                        // return frame to the pool
-                        this.FramePool.PutFrame(frame);
+                        ProcessFrame(frame);                        
                     }
                     catch (OperationCanceledException)
                     {
@@ -104,26 +101,25 @@ namespace BackgroundPipeline
             foreach (var module in this.Modules)
             {
                 module.Process(frame);
-                this.Timer.Increment();
+            }
+
+            this.Timer.Increment();
+            this.OnFrameComplete(frame);
+        }
+
+        private void OnFrameComplete(T frame)
+        {
+            if (this.FrameComplete != null)
+            {
+                this.FrameComplete(this, frame);
             }
         }
 
-        public async Task Enqueue(T frame)
+        public void Enqueue(T frame)
         {
-            var count = this.Count;
-            var poolSize = this.FramePool.PoolSize;
-
-            await Task.Run(() =>
-            {
-                if (this.frameQueue.IsCompleted || this.frameQueue.IsAddingCompleted || (this.restrictSize && count == poolSize))
-                {
-                    // drop frames if we have hit the size limit
-                    Debug.WriteLine($"Warning: Frame dropped. Limit of {poolSize} was reached");
-                    return;
-                }
-
-                this.frameQueue.Add(frame);
-            });
+            if (!this.Timer.IsRunning || this.frameQueue.IsCompleted || this.frameQueue.IsAddingCompleted) return;
+          
+            this.frameQueue.Add(frame);
         }
 
         public bool IsCompleted { get { return this.frameQueue == null || this.frameQueue.IsCompleted; } }

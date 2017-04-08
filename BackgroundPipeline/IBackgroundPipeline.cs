@@ -7,6 +7,11 @@ namespace BackgroundPipeline
     public interface IBackgroundPipeline<T> : IDisposable
     {
         /// <summary>
+        /// Fires when a frame has been completely processed
+        /// </summary>
+        event EventHandler<T> FrameComplete;
+
+        /// <summary>
         /// Timer for the pipeline for reporting FPS and notifying consumers
         /// </summary>
         PipelineTimer Timer { get; }
@@ -16,7 +21,7 @@ namespace BackgroundPipeline
         /// </summary>
         /// <param name="frame">Add a frame to the queue</param>
         /// <returns>An async task</returns>
-        Task Enqueue(T frame);
+        void Enqueue(T frame);
 
         /// <summary>
         /// Start the pipeline processing

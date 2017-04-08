@@ -93,7 +93,7 @@ namespace PipelineSample.ViewModel
         public MainViewModel()
         {
             // create a background pipeline and pre-allocate 2 seconds of frames
-            this.pipeline = new BackgroundPipeline<KinectFrame>(Kinect2Metrics.CameraRate, 60, () => this.CreateFrame(), false);
+            this.pipeline = new BackgroundPipeline<KinectFrame>(Kinect2Metrics.CameraRate, 60, () => this.CreateFrame());
             this.pipeline.Modules.Add(new DummyModule());
             pipeline.Timer.Tick += (sender, args) =>
             {
@@ -102,6 +102,12 @@ namespace PipelineSample.ViewModel
                 this.BackLog = pipeline.Count;
 
                 this.Log += $"{this.FPS},{this.PoolFrames},{this.BackLog}\n";
+            };
+
+            // return the frame to the pool
+            this.pipeline.FrameComplete += (sender, frame) =>
+            {
+                this.pipeline.FramePool.PutFrame(frame);
             };
 
             this.Start = new RelayCommand(this.StartPipeline, () => !this.pipeline.Timer.IsRunning);
@@ -113,9 +119,11 @@ namespace PipelineSample.ViewModel
             this.Log = "FPS, PoolFrames, BackLog\n";
             this.pipeline.Start();
             var frequencyHz = (int)(1000.0f / 250);
-            this.timer = new System.Threading.Timer(async (state) => {
+
+            // add a frame to the queue every 250 ms
+            this.timer = new System.Threading.Timer((state) => {
                 var frame = this.pipeline.FramePool.GetFrame();
-                await this.pipeline.Enqueue(frame);
+                this.pipeline.Enqueue(frame);
             }, null, 0, frequencyHz);
 
             this.Start.RaiseCanExecuteChanged();
