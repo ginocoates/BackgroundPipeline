@@ -7,7 +7,7 @@ namespace BackgroundPipeline
         /// <summary>
         /// Gets or sets a value indicating whether this module is enabled.
         /// </summary>
-        bool Enabled { get; set;  }
+        bool IsEnabled { get; set;  }
 
         /// <summary>
         /// Process the frame

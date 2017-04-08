@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Runtime;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace BackgroundPipeline
 {
@@ -15,9 +16,7 @@ namespace BackgroundPipeline
         CancellationTokenSource cancellationToken;
 
         Task processingTask;
-
-        bool restrictSize;
-
+        
         public event EventHandler<T> FrameComplete;
 
         public List<IPipelineModule<T>> Modules { get; private set; }
@@ -98,7 +97,7 @@ namespace BackgroundPipeline
 
         private void ProcessFrame(T frame)
         {
-            foreach (var module in this.Modules)
+            foreach (var module in this.Modules.Where(m => m.IsEnabled))
             {
                 module.Process(frame);
             }
@@ -115,11 +114,11 @@ namespace BackgroundPipeline
             }
         }
 
-        public void Enqueue(T frame)
+        public async Task Enqueue(T frame)
         {
             if (!this.Timer.IsRunning || this.frameQueue.IsCompleted || this.frameQueue.IsAddingCompleted) return;
           
-            this.frameQueue.Add(frame);
+            await Task.Run(() => this.frameQueue.Add(frame));
         }
 
         public bool IsCompleted { get { return this.frameQueue == null || this.frameQueue.IsCompleted; } }

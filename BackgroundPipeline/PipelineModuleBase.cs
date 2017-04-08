@@ -8,7 +8,7 @@ namespace BackgroundPipeline
 {
     public abstract class PipelineModuleBase<T> : IPipelineModule<T>
     {
-        public bool Enabled
+        public bool IsEnabled
         {
             get;
             set;

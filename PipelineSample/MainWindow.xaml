@@ -15,9 +15,11 @@
         <Label x:Name="label3" Content="{Binding PoolFrames}" HorizontalAlignment="Left" Margin="119,69,0,0" VerticalAlignment="Top" Height="30" Width="73"/>
         <Label x:Name="label4" Content="Back Log" HorizontalAlignment="Left"  VerticalAlignment="Top" Margin="39,100,0,0"/>
         <Label x:Name="label5" Content="{Binding BackLog}" HorizontalAlignment="Left" Margin="119,99,0,0" VerticalAlignment="Top" Height="30" Width="73"/>
-        <TextBox x:Name="textBox" HorizontalAlignment="Left" Height="163" AcceptsReturn="True" Margin="39,129,0,0" TextWrapping="Wrap" Text="{Binding Log, Mode=OneWay}" VerticalAlignment="Top" Width="431" VerticalScrollBarVisibility="Visible"/>
+        <TextBox x:Name="textBox" HorizontalAlignment="Left" Height="113" AcceptsReturn="True" Margin="39,179,0,0" TextWrapping="Wrap" Text="{Binding Log, Mode=OneWay}" VerticalAlignment="Top" Width="431" VerticalScrollBarVisibility="Visible"/>
         <Button x:Name="button" Content="Start" HorizontalAlignment="Left" Margin="341,69,0,0" VerticalAlignment="Top" Width="75" Command="{Binding Start}"/>
-        <Button x:Name="button1" Content="Stop" HorizontalAlignment="Left" Margin="341,93,0,0" VerticalAlignment="Top" Width="75" Command="{Binding Stop}"/>
+        <Button x:Name="button3" Content="AddBatch" HorizontalAlignment="Left" Margin="341,93,0,0" VerticalAlignment="Top" Width="75" Command="{Binding AddBatch}"/>
+        <Button x:Name="button1" Content="Stop" HorizontalAlignment="Left" Margin="341,117,0,0" VerticalAlignment="Top" Width="75" Command="{Binding Stop}"/>
+        <Button x:Name="button1_Copy" Content="Abort" HorizontalAlignment="Left" Margin="341,141,0,0" VerticalAlignment="Top" Width="75" Command="{Binding Abort}"/>
 
     </Grid>
 </Window>

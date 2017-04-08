@@ -21,7 +21,7 @@ namespace BackgroundPipeline
         /// </summary>
         /// <param name="frame">Add a frame to the queue</param>
         /// <returns>An async task</returns>
-        void Enqueue(T frame);
+        Task Enqueue(T frame);
 
         /// <summary>
         /// Start the pipeline processing
