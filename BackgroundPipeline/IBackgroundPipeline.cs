@@ -17,7 +17,7 @@ namespace BackgroundPipeline
         PipelineTimer Timer { get; }
         
         /// <summary>
-        /// Add a frame to the queue
+        /// Add a frame to the queue asynchronously
         /// </summary>
         /// <param name="frame">Add a frame to the queue</param>
         /// <returns>An async task</returns>
