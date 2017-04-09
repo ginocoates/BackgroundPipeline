@@ -16,26 +16,28 @@ namespace BackgroundPipeline
         CancellationTokenSource cancellationToken;
 
         Task processingTask;
-        
+
+        private int queueSize;
+
         public event EventHandler<T> FrameComplete;
+
+        public event EventHandler QueueComplete;
 
         public List<IPipelineModule<T>> Modules { get; private set; }
 
         public PipelineTimer Timer { get; private set; }
 
-        public FramePool<T> FramePool { get; private set; }
-
-        public BackgroundPipeline(int frequencyHz, int poolSize, Func<T> frameGenerator)
+        public BackgroundPipeline(int frequencyHz, int queueSize)
         {
-            if (poolSize <= 0)
+            if (queueSize <= 0)
             {
                 throw new ArgumentOutOfRangeException("Please specify a valid pool size!");
             }
 
+            this.queueSize = queueSize;
+
             this.Timer = new PipelineTimer(frequencyHz);
 
-            this.FramePool = new FramePool<T>(frameGenerator, poolSize);
-            
             this.Modules = new List<IPipelineModule<T>>();
         }
 
@@ -54,7 +56,7 @@ namespace BackgroundPipeline
             // create a concurrent queue for thread safe FIFO processing.
             // wrapped in a blocking collection so that the pipeling blocks and waits for frames
             // to process
-            this.frameQueue = new BlockingCollection<T>(new ConcurrentQueue<T>(), this.FramePool.PoolSize);
+            this.frameQueue = new BlockingCollection<T>(new ConcurrentQueue<T>(), this.queueSize);
 
             this.Timer.Start();
 
@@ -71,7 +73,7 @@ namespace BackgroundPipeline
 
                         if (!this.frameQueue.TryTake(out frame, -1, this.cancellationToken.Token)) continue;
 
-                        ProcessFrame(frame);                        
+                        ProcessFrame(frame);
                     }
                     catch (OperationCanceledException)
                     {
@@ -79,6 +81,9 @@ namespace BackgroundPipeline
                     }
 
                 }
+
+                this.OnQueueComplate();
+
             }, this.cancellationToken.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
@@ -91,7 +96,7 @@ namespace BackgroundPipeline
 
         public void Abort()
         {
-           this.cancellationToken.Cancel();
+            this.cancellationToken.Cancel();
             this.Stop();
         }
 
@@ -114,11 +119,28 @@ namespace BackgroundPipeline
             }
         }
 
+
+        private void OnQueueComplate()
+        {
+            if (this.QueueComplete != null) {
+                this.QueueComplete(this, EventArgs.Empty);
+            }
+        }
+
         public async Task Enqueue(T frame)
         {
             if (!this.Timer.IsRunning || this.frameQueue.IsCompleted || this.frameQueue.IsAddingCompleted) return;
-          
-            await Task.Run(() => this.frameQueue.Add(frame));
+
+            await Task.Run(() =>
+            {
+                try
+                {
+                    this.frameQueue.Add(frame);
+                }
+                catch (InvalidOperationException ex) {
+                    Debug.WriteLine("Failed to add to queue:" + ex.ToString());
+                }
+            });
         }
 
         public bool IsCompleted { get { return this.frameQueue == null || this.frameQueue.IsCompleted; } }

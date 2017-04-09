@@ -12,6 +12,11 @@ namespace BackgroundPipeline
         event EventHandler<T> FrameComplete;
 
         /// <summary>
+        /// Fires when all frames have been completely processed
+        /// </summary>
+        event EventHandler QueueComplete;
+
+        /// <summary>
         /// Timer for the pipeline for reporting FPS and notifying consumers
         /// </summary>
         PipelineTimer Timer { get; }

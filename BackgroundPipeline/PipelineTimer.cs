@@ -67,6 +67,7 @@ namespace BackgroundPipeline
         internal void Stop() 
         {
             timer.Change(Timeout.Infinite, Timeout.Infinite);
+            this.stopWatch.Stop();
             this.IsRunning = false;
         }
 

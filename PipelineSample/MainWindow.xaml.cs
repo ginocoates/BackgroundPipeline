@@ -1,4 +1,5 @@
-﻿using System;
+﻿using PipelineSample.ViewModel;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,9 +21,26 @@ namespace PipelineSample
     /// </summary>
     public partial class MainWindow : Window
     {
+        public MainViewModel ViewModel
+        {
+            get { return this.DataContext as MainViewModel; }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
+
+            CompositionTarget.Rendering += CompositionTarget_Rendering;
+        }
+
+        /// <summary>
+        /// Render a frame in the viewmodel
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void CompositionTarget_Rendering(object sender, EventArgs e)
+        {
+            this.ViewModel.Render.Execute(null);
         }
     }
 }

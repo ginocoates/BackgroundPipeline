@@ -10,6 +10,7 @@ using System.Threading;
 using PipelineSample.Modules;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace PipelineSample.ViewModel
 {
@@ -28,20 +29,24 @@ namespace PipelineSample.ViewModel
     public class MainViewModel : ViewModelBase
     {
         BackgroundPipeline<KinectFrame> pipeline;
-        double fps;
+        FramePool<KinectFrame> framePool;
+        double pipelineFps;
+        double renderFps;
         double poolFrames;
         double backLog;
         string log;
+        Stopwatch stopWatch;
+        int framesRendered;
 
         public double FPS
         {
             get
             {
-                return this.fps;
+                return this.pipelineFps;
             }
             private set
             {
-                this.fps = value;
+                this.pipelineFps = value;
                 RaisePropertyChanged(() => this.FPS);
             }
         }
@@ -85,10 +90,23 @@ namespace PipelineSample.ViewModel
             }
         }
 
+        public double RenderFPS
+        {
+            get
+            {
+                return renderFps;
+            }
+
+            set
+            {
+                renderFps = value;
+                RaisePropertyChanged(() => this.RenderFPS);
+            }
+        }
+
         public RelayCommand Start { get; private set; }
-        public RelayCommand AddBatch { get; private set; }
         public RelayCommand Stop { get; private set; }
-        public RelayCommand Abort { get; private set; }
+        public RelayCommand Render { get; private set; }
 
         /// <summary>
         /// Initializes a new instance of the MainViewModel class.
@@ -96,65 +114,76 @@ namespace PipelineSample.ViewModel
         public MainViewModel()
         {
             // create a background pipeline and pre-allocate 2 seconds of frames
-            this.pipeline = new BackgroundPipeline<KinectFrame>(Kinect2Metrics.CameraRate, 60, () => this.CreateFrame());
+            this.pipeline = new BackgroundPipeline<KinectFrame>(Kinect2Metrics.CameraRate, 60);
+            this.framePool = new FramePool<KinectFrame>(this.CreateFrame, 120);
             this.pipeline.Modules.Add(new DummyModule { IsEnabled = true });
+
             pipeline.Timer.Tick += (sender, args) =>
             {
                 this.FPS = ((PipelineTimer)sender).FPS;
-                this.PoolFrames = pipeline.FramePool.Count;
+                this.PoolFrames = this.framePool.Count;
                 this.BackLog = pipeline.Count;
 
-                this.Log += $"{this.FPS},{this.PoolFrames},{this.BackLog}\n";
+                this.Log += $"{this.RenderFPS},{this.FPS},{this.PoolFrames},{this.BackLog}\n";
             };
 
             // return the frame to the pool
             this.pipeline.FrameComplete += (sender, frame) =>
             {
-                this.pipeline.FramePool.PutFrame(frame);
+                this.framePool.PutFrame(frame);
+            };
+
+            this.pipeline.QueueComplete += (sender, args) =>
+            {
+                Console.WriteLine($"Pipeline Queue Completed {DateTime.Now.ToString()}");
+                File.WriteAllText("report.csv", this.Log);
             };
 
             this.Start = new RelayCommand(this.StartPipeline, () => !this.pipeline.Timer.IsRunning);
-            this.AddBatch = new RelayCommand(this.AddBatchToPipeline, () => this.pipeline.Timer.IsRunning);
             this.Stop = new RelayCommand(this.StopPipeline, () => this.pipeline.Timer.IsRunning);
-            this.Abort = new RelayCommand(this.AbortPipeline, () => this.pipeline.Timer.IsRunning);
+            this.Render = new RelayCommand(this.RenderFrame);
+
+            this.stopWatch = new Stopwatch();
+            this.stopWatch.Start();
+            this.RenderFPS = 0;
         }
 
-        private async void AddBatchToPipeline()
+        private async void RenderFrame()
         {
-            for (var i = 0; i < 100; i++)
+            this.calculateFPS();
+
+            if (!this.pipeline.Timer.IsRunning) return;
+
+            var frame = this.framePool.GetFrame();
+            await this.pipeline.Enqueue(frame);
+        }
+
+        private void calculateFPS()
+        {
+            this.framesRendered++;
+
+            if (this.stopWatch.Elapsed.TotalSeconds >= 1)
             {
-                var frame = this.pipeline.FramePool.GetFrame();
-                await this.pipeline.Enqueue(frame);
+                this.RenderFPS = Math.Round(this.framesRendered / this.stopWatch.Elapsed.TotalSeconds);
+                this.framesRendered = 0;
+                this.stopWatch.Restart();
             }
         }
-
-        private void AbortPipeline()
-        {
-            this.pipeline.Abort();
-            this.Start.RaiseCanExecuteChanged();
-            this.Stop.RaiseCanExecuteChanged();
-            this.Abort.RaiseCanExecuteChanged();
-            this.AddBatch.RaiseCanExecuteChanged();
-        }
-
+                
         private void StartPipeline()
         {
-            this.Log = "FPS, PoolFrames, BackLog\n";
+            this.Log = "RenderFPS, PipelineFPS, PoolFrames, PipelineBackLog\n";
             this.pipeline.Start();
             this.Start.RaiseCanExecuteChanged();
-            this.Stop.RaiseCanExecuteChanged();
-            this.Abort.RaiseCanExecuteChanged();
-            this.AddBatch.RaiseCanExecuteChanged();
+            this.Stop.RaiseCanExecuteChanged();          
         }
 
         private void StopPipeline()
         {
             this.pipeline.Stop();
-            File.WriteAllText("report.csv", this.Log);
             this.Start.RaiseCanExecuteChanged();
             this.Stop.RaiseCanExecuteChanged();
-            this.Abort.RaiseCanExecuteChanged();
-            this.AddBatch.RaiseCanExecuteChanged();
+            Console.WriteLine($"Pipeline Stopped {DateTime.Now.ToString()}");
         }
 
         private KinectFrame CreateFrame()
