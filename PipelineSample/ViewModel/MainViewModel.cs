@@ -115,7 +115,7 @@ namespace PipelineSample.ViewModel
         {
             // create a background pipeline and pre-allocate 2 seconds of frames
             this.pipeline = new BackgroundPipeline<KinectFrame>(Kinect2Metrics.CameraRate, 60);
-            this.framePool = new FramePool<KinectFrame>(this.CreateFrame, 120);
+            this.framePool = new FramePool<KinectFrame>(this.CreateFrame, 160);
             this.pipeline.Modules.Add(new DummyModule { IsEnabled = true });
 
             pipeline.Timer.Tick += (sender, args) =>
@@ -194,7 +194,7 @@ namespace PipelineSample.ViewModel
                 InfraredPixels = new ushort[Kinect2Metrics.IRFrameWidth * Kinect2Metrics.IRFrameHeight],
                 DepthPixels = new ushort[Kinect2Metrics.DepthFrameWidth * Kinect2Metrics.DepthFrameHeight],
             };
-
+            
             return frame;
         }
     }

@@ -18,9 +18,10 @@ namespace PipelineSample.Modules
 
         public override KinectFrame Process(KinectFrame frame)
         {
-            for (var i = 0; i < frame.ColorPixels.Length; i++) {
-                frame.ColorPixels[i] = 0;
-            }
+            // simulate a slow operation
+            var end = DateTime.Now + TimeSpan.FromMilliseconds(60);
+            while (DateTime.Now < end) ;
+
             return frame;
         }
     }

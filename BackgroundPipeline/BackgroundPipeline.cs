@@ -71,9 +71,10 @@ namespace BackgroundPipeline
                         // blocks until frame is available
                         T frame;
 
-                        if (!this.frameQueue.TryTake(out frame, -1, this.cancellationToken.Token)) continue;
-
-                        ProcessFrame(frame);
+                        if (this.frameQueue.TryTake(out frame, -1, this.cancellationToken.Token))
+                        {
+                            ProcessFrame(frame);
+                        }
                     }
                     catch (OperationCanceledException)
                     {
@@ -102,7 +103,7 @@ namespace BackgroundPipeline
 
         private void ProcessFrame(T frame)
         {
-            foreach (var module in this.Modules.Where(m => m.IsEnabled))
+            foreach (var module in this.Modules)
             {
                 module.Process(frame);
             }

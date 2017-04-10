@@ -46,7 +46,7 @@ namespace BackgroundPipeline
         {
             this.stopWatch = new Stopwatch();
             this.frequencyHz = (int)(1000.0f / frequencyHz);
-            timer = new System.Threading.Timer(this.CaptureTimer_Elapsed, null, Timeout.Infinite, Timeout.Infinite);            
+            timer = new Timer(this.CaptureTimer_Elapsed, null, Timeout.Infinite, Timeout.Infinite);            
         }
 
         /// <summary>
