@@ -171,9 +171,7 @@ namespace PipelineSample.ViewModel
 
             var frame = this.framePool.GetFrame();
             frame.Id = Guid.NewGuid();
-
-            Task.Run(()=>
-            this.pipeline.Enqueue(frame));
+            await this.pipeline.Enqueue(frame);
 
             this.FPS = this.pipeline.Timer.FPS;
             this.PoolFrames = this.framePool.Count;

@@ -58,7 +58,7 @@ namespace BackgroundPipeline
             // create a concurrent queue for thread safe FIFO processing.
             // wrapped in a blocking collection so that the pipeling blocks and waits for frames
             // to process
-            frameQueue = new BlockingCollection<T>(new ConcurrentQueue<T>(), 10);
+            frameQueue = new BlockingCollection<T>(new ConcurrentQueue<T>(), this.queueSize);
 
             Timer.Start();
 
