@@ -22,8 +22,6 @@ namespace PipelineSample
     /// </summary>
     public partial class MainWindow : Window
     {
-        Stopwatch stopwatch;
-
         public MainViewModel ViewModel
         {
             get { return this.DataContext as MainViewModel; }
@@ -32,24 +30,6 @@ namespace PipelineSample
         public MainWindow()
         {
             InitializeComponent();
-            stopwatch = new Stopwatch();
-            stopwatch.Start();
-            CompositionTarget.Rendering += CompositionTarget_Rendering;
-        }
-
-        /// <summary>
-        /// Render a frame in the viewmodel at rate of 30fps
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void CompositionTarget_Rendering(object sender, EventArgs e)
-        {
-            if (stopwatch.ElapsedMilliseconds >= 25)
-            {
-                stopwatch.Reset();
-                stopwatch.Start();
-                this.ViewModel.Render.Execute(null);
-            }
         }
     }
 }

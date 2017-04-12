@@ -9,6 +9,11 @@ namespace BackgroundPipeline
         /// <summary>
         /// Fires when a frame has been completely processed
         /// </summary>
+        event EventHandler<T> FrameStart;
+
+        /// <summary>
+        /// Fires when a frame has been completely processed
+        /// </summary>
         event EventHandler<T> FrameComplete;
 
         /// <summary>

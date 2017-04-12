@@ -77,11 +77,8 @@ namespace BackgroundPipeline
         /// <param name="state">The timer state</param>
         private void CaptureTimer_Elapsed(object state)
         {
-            if (Tick != null)
-            {
-                // stop the timer to stop reentrance
-                Tick(this, EventArgs.Empty);
-            }
+            // stop the timer to stop reentrance
+            Tick?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -89,6 +86,7 @@ namespace BackgroundPipeline
         /// </summary>
         internal void Increment()
         {
+            if (!this.IsRunning) return;
             this.tickCount++;
             this.calculateFPS();
         }

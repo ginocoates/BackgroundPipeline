@@ -19,6 +19,8 @@ namespace BackgroundPipeline
 
         private int queueSize;
 
+        public event EventHandler<T> FrameStart;
+
         public event EventHandler<T> FrameComplete;
 
         public event EventHandler QueueComplete;
@@ -36,42 +38,43 @@ namespace BackgroundPipeline
 
             this.queueSize = queueSize;
 
-            this.Timer = new PipelineTimer(frequencyHz);
+            Timer = new PipelineTimer(frequencyHz);
 
-            this.Modules = new List<IPipelineModule<T>>();
+            Modules = new List<IPipelineModule<T>>();
         }
 
         public int Count
         {
             get
             {
-                return this.frameQueue.Count;
+                return frameQueue.Count;
             }
         }
 
         public void Start()
         {
-            if (this.Timer.IsRunning) return;
+            if (Timer.IsRunning) return;
 
             // create a concurrent queue for thread safe FIFO processing.
             // wrapped in a blocking collection so that the pipeling blocks and waits for frames
             // to process
-            this.frameQueue = new BlockingCollection<T>(new ConcurrentQueue<T>(), this.queueSize);
+            frameQueue = new BlockingCollection<T>(new ConcurrentQueue<T>(), 10);
 
-            this.Timer.Start();
+            Timer.Start();
 
-            this.cancellationToken = new CancellationTokenSource();
+            cancellationToken = new CancellationTokenSource();
 
-            this.processingTask = Task.Factory.StartNew(() =>
+            // run on a new thread
+            processingTask = Task.Factory.StartNew(() =>
             {
-                while (this.frameQueue != null && !this.frameQueue.IsCompleted && !this.cancellationToken.IsCancellationRequested)
+                while (frameQueue != null && !frameQueue.IsCompleted && !cancellationToken.IsCancellationRequested)
                 {
                     try
                     {
                         // blocks until frame is available
                         T frame;
 
-                        if (this.frameQueue.TryTake(out frame, -1, this.cancellationToken.Token))
+                        if (frameQueue.TryTake(out frame, -1, cancellationToken.Token))
                         {
                             ProcessFrame(frame);
                         }
@@ -83,60 +86,69 @@ namespace BackgroundPipeline
 
                 }
 
-                this.OnQueueComplate();
+                OnQueueComplate();
 
-            }, this.cancellationToken.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            }, cancellationToken.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
 
         public void Stop()
         {
-            if (!this.Timer.IsRunning) return;
-            this.Timer.Stop();
-            this.frameQueue.CompleteAdding();
+            if (!Timer.IsRunning) return;
+            Timer.Stop();
+            frameQueue.CompleteAdding();
         }
 
         public void Abort()
         {
-            this.cancellationToken.Cancel();
-            this.Stop();
+            cancellationToken.Cancel();
+            Stop();
         }
 
         private void ProcessFrame(T frame)
         {
-            foreach (var module in this.Modules)
+            OnFrameStart(frame);
+
+            foreach (var module in Modules.Where(m => m.IsEnabled))
             {
                 module.Process(frame);
             }
 
-            this.Timer.Increment();
-            this.OnFrameComplete(frame);
+            Timer.Increment();
+            OnFrameComplete(frame);
+        }
+
+
+        private void OnFrameStart(T frame)
+        {
+            FrameStart?.Invoke(this, frame);
         }
 
         private void OnFrameComplete(T frame)
         {
-            if (this.FrameComplete != null)
-            {
-                this.FrameComplete(this, frame);
-            }
+            FrameComplete?.Invoke(this, frame);
         }
 
 
         private void OnQueueComplate()
         {
-            if (this.QueueComplete != null) {
-                this.QueueComplete(this, EventArgs.Empty);
-            }
+            QueueComplete?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>
+        /// Add frames asynchronously so we don't block the UI thread
+        /// </summary>
+        /// <param name="frame">The frame to add</param>
+        /// <returns>A task</returns>
         public async Task Enqueue(T frame)
         {
-            if (!this.Timer.IsRunning || this.frameQueue.IsCompleted || this.frameQueue.IsAddingCompleted) return;
+            if (!Timer.IsRunning) return;
 
             await Task.Run(() =>
             {
                 try
                 {
-                    this.frameQueue.Add(frame);
+                    if(frameQueue.IsCompleted || frameQueue.IsAddingCompleted) return;
+                    frameQueue.TryAdd(frame, -1, cancellationToken.Token);
                 }
                 catch (InvalidOperationException ex) {
                     Debug.WriteLine("Failed to add to queue:" + ex.ToString());
@@ -144,13 +156,13 @@ namespace BackgroundPipeline
             });
         }
 
-        public bool IsCompleted { get { return this.frameQueue == null || this.frameQueue.IsCompleted; } }
+        public bool IsCompleted { get { return frameQueue == null || frameQueue.IsCompleted; } }
 
-        public bool IsAddingCompleted { get { return this.frameQueue == null || this.frameQueue.IsAddingCompleted; } }
+        public bool IsAddingCompleted { get { return frameQueue == null || frameQueue.IsAddingCompleted; } }
 
         public void Dispose()
         {
-            this.Dispose(true);
+            Dispose(true);
         }
 
         private void Dispose(bool disposing)
@@ -159,12 +171,12 @@ namespace BackgroundPipeline
             {
                 try
                 {
-                    foreach (IPipelineModule<T> module in this.Modules)
+                    foreach (IPipelineModule<T> module in Modules)
                     {
                         module.Dispose();
                     }
-                    this.frameQueue.Dispose();
-                    this.Timer.Dispose();
+                    frameQueue.Dispose();
+                    Timer.Dispose();
                 }
                 catch (Exception ex)
                 {

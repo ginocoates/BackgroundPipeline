@@ -9,6 +9,7 @@ namespace PipelineSample
 {
     struct KinectFrame
     {
+        public Guid Id { get; set; }
         public byte[] ColorPixels { get; set; }
         public ushort[] DepthPixels { get; set; }
         public ushort[] InfraredPixels { get; set; }

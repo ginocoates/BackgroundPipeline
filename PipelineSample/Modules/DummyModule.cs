@@ -19,7 +19,7 @@ namespace PipelineSample.Modules
         public override KinectFrame Process(KinectFrame frame)
         {
             // simulate a slow operation
-            var end = DateTime.Now + TimeSpan.FromMilliseconds(60);
+            var end = DateTime.Now + TimeSpan.FromMilliseconds(50);
             while (DateTime.Now < end) ;
 
             return frame;

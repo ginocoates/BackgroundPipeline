@@ -28,6 +28,8 @@ namespace PipelineSample.ViewModel
     /// </summary>
     public class MainViewModel : ViewModelBase
     {
+        KinectSensor sensor;
+
         BackgroundPipeline<KinectFrame> pipeline;
         FramePool<KinectFrame> framePool;
         double pipelineFps;
@@ -113,6 +115,15 @@ namespace PipelineSample.ViewModel
         /// </summary>
         public MainViewModel()
         {
+            sensor = KinectSensor.GetDefault();
+
+            sensor.Open();
+
+            var frameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Color);
+            frameReader.MultiSourceFrameArrived += (sender, args) => {
+                this.RenderFrame();
+            };
+
             // create a background pipeline and pre-allocate 2 seconds of frames
             this.pipeline = new BackgroundPipeline<KinectFrame>(Kinect2Metrics.CameraRate, 60);
             this.framePool = new FramePool<KinectFrame>(this.CreateFrame, 160);
@@ -127,6 +138,10 @@ namespace PipelineSample.ViewModel
                 this.Log += $"{this.RenderFPS},{this.FPS},{this.PoolFrames},{this.BackLog}\n";
             };
 
+            this.pipeline.FrameStart += (sender, frame) =>
+            {
+            };
+
             // return the frame to the pool
             this.pipeline.FrameComplete += (sender, frame) =>
             {
@@ -135,7 +150,7 @@ namespace PipelineSample.ViewModel
 
             this.pipeline.QueueComplete += (sender, args) =>
             {
-                Console.WriteLine($"Pipeline Queue Completed {DateTime.Now.ToString()}");
+                Console.WriteLine($"{DateTime.Now.ToString("ddMMyyyyhhmmssfffff")}: Queue Complete");
                 File.WriteAllText("report.csv", this.Log);
             };
 
@@ -155,7 +170,14 @@ namespace PipelineSample.ViewModel
             if (!this.pipeline.Timer.IsRunning) return;
 
             var frame = this.framePool.GetFrame();
-            await this.pipeline.Enqueue(frame);
+            frame.Id = Guid.NewGuid();
+
+            Task.Run(()=>
+            this.pipeline.Enqueue(frame));
+
+            this.FPS = this.pipeline.Timer.FPS;
+            this.PoolFrames = this.framePool.Count;
+            this.BackLog = pipeline.Count;
         }
 
         private void calculateFPS()
@@ -183,7 +205,7 @@ namespace PipelineSample.ViewModel
             this.pipeline.Stop();
             this.Start.RaiseCanExecuteChanged();
             this.Stop.RaiseCanExecuteChanged();
-            Console.WriteLine($"Pipeline Stopped {DateTime.Now.ToString()}");
+            Console.WriteLine($"{DateTime.Now.ToString("ddMMyyyyhhmmssfffff")}: Pipeline Stopped");
         }
 
         private KinectFrame CreateFrame()
