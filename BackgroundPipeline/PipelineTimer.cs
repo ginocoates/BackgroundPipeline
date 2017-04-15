@@ -96,8 +96,6 @@ namespace BackgroundPipeline
         /// </summary>
         private void calculateFPS()
         {
-            this.tickCount++;
-
             if (this.stopWatch.Elapsed.TotalSeconds >= 1)
             {
                 this.FPS = Math.Round(this.tickCount / this.stopWatch.Elapsed.TotalSeconds);
