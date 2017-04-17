@@ -9,16 +9,14 @@ using System.Linq;
 
 namespace BackgroundPipeline
 {
-    public class BackgroundPipeline<T> : IBackgroundPipeline<T> where T : struct
+    public class BackgroundPipeline<T> : IBackgroundPipeline<T>
     {
         BlockingCollection<T> frameQueue;
 
         CancellationTokenSource cancellationToken;
 
         Task processingTask;
-
-        private int queueSize;
-
+        
         public event EventHandler<T> FrameStart;
 
         public event EventHandler<T> FrameComplete;
@@ -29,15 +27,8 @@ namespace BackgroundPipeline
 
         public PipelineTimer Timer { get; private set; }
 
-        public BackgroundPipeline(int frequencyHz, int queueSize)
-        {
-            if (queueSize <= 0)
-            {
-                throw new ArgumentOutOfRangeException("Please specify a valid pool size!");
-            }
-
-            this.queueSize = queueSize;
-
+        public BackgroundPipeline(int frequencyHz)
+        {           
             Timer = new PipelineTimer(frequencyHz);
 
             Modules = new List<IPipelineModule<T>>();
@@ -58,7 +49,7 @@ namespace BackgroundPipeline
             // create a concurrent queue for thread safe FIFO processing.
             // wrapped in a blocking collection so that the pipeling blocks and waits for frames
             // to process
-            frameQueue = new BlockingCollection<T>(new ConcurrentQueue<T>(), this.queueSize);
+            frameQueue = new BlockingCollection<T>(new ConcurrentQueue<T>());
 
             Timer.Start();
 
@@ -147,7 +138,7 @@ namespace BackgroundPipeline
             {
                 try
                 {
-                    if(frameQueue.IsCompleted || frameQueue.IsAddingCompleted) return;
+                    if(frameQueue.IsCompleted || frameQueue.IsAddingCompleted || cancellationToken.IsCancellationRequested) return;
                     frameQueue.TryAdd(frame, -1, cancellationToken.Token);
                 }
                 catch (InvalidOperationException ex) {

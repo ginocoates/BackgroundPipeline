@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace BackgroundPipeline
 {
-    public class FramePool<T> where T : struct
+    public class FramePool<T>
     {
         /// <summary>
         /// A concurrent bag of frames

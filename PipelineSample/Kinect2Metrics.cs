@@ -94,7 +94,7 @@ namespace PipelineSample
         /// <summary>
         /// Length of depth buffer
         /// </summary>
-        public static int IRBufferLength = Kinect2Metrics.IRFrameWidth * Kinect2Metrics.IRFrameHeight;
+        public static int IRBufferLength = Kinect2Metrics.IRStride * Kinect2Metrics.DepthFrameHeight;
 
         /// <summary>
         /// Width of RGB frame
