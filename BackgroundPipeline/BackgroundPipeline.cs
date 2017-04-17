@@ -16,7 +16,7 @@ namespace BackgroundPipeline
         CancellationTokenSource cancellationToken;
 
         Task processingTask;
-        
+
         public event EventHandler<T> FrameStart;
 
         public event EventHandler<T> FrameComplete;
@@ -28,7 +28,7 @@ namespace BackgroundPipeline
         public PipelineTimer Timer { get; private set; }
 
         public BackgroundPipeline(int frequencyHz)
-        {           
+        {
             Timer = new PipelineTimer(frequencyHz);
 
             Modules = new List<IPipelineModule<T>>();
@@ -126,25 +126,23 @@ namespace BackgroundPipeline
         }
 
         /// <summary>
-        /// Add frames asynchronously so we don't block the UI thread
+        /// Add frames to the queue
         /// </summary>
         /// <param name="frame">The frame to add</param>
         /// <returns>A task</returns>
-        public async Task Enqueue(T frame)
+        public void Enqueue(T frame)
         {
             if (!Timer.IsRunning) return;
 
-            await Task.Run(() =>
+            try
             {
-                try
-                {
-                    if(frameQueue.IsCompleted || frameQueue.IsAddingCompleted || cancellationToken.IsCancellationRequested) return;
-                    frameQueue.TryAdd(frame, -1, cancellationToken.Token);
-                }
-                catch (InvalidOperationException ex) {
-                    Debug.WriteLine("Failed to add to queue:" + ex.ToString());
-                }
-            });
+                if (frameQueue.IsCompleted || frameQueue.IsAddingCompleted || cancellationToken.IsCancellationRequested) return;
+                frameQueue.TryAdd(frame, -1, cancellationToken.Token);
+            }
+            catch (InvalidOperationException ex)
+            {
+                Debug.WriteLine("Failed to add to queue:" + ex.ToString());
+            }
         }
 
         public bool IsCompleted { get { return frameQueue == null || frameQueue.IsCompleted; } }

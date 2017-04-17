@@ -165,18 +165,18 @@ namespace PipelineSample.ViewModel
             this.RenderFPS = 0;
         }
 
-        private async void RenderFrame(MultiSourceFrame kinectFrame)
+        private void RenderFrame(MultiSourceFrame kinectFrame)
         {
             this.calculateFPS();
 
             if (!this.pipeline.Timer.IsRunning) return;
-
+            
             var frame = new KinectFrame();
             
             frame.Id = Guid.NewGuid();
             frame.RelativeTime = this.pipeline.Timer.ElapsedTime;
 
-            await this.pipeline.Enqueue(frame);
+            this.pipeline.Enqueue(frame);
 
             this.FPS = this.pipeline.Timer.FPS;
             this.BackLog = pipeline.Count;
