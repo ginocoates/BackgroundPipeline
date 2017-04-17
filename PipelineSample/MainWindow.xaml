@@ -13,12 +13,12 @@
         <Label x:Name="label1" Content="{Binding FPS}" HorizontalAlignment="Left" Margin="119,51,0,0" VerticalAlignment="Top" Width="73"/>
         <Label x:Name="label8" Content="Render FPS" HorizontalAlignment="Left" Margin="39,79,0,0" VerticalAlignment="Top"/>
         <Label x:Name="label6" Content="{Binding RenderFPS}" HorizontalAlignment="Left" Margin="119,79,0,0" VerticalAlignment="Top" Height="26" Width="73"/>
-        <Label x:Name="label2" Content="Pool Frames" HorizontalAlignment="Left" Margin="39,110,0,0" VerticalAlignment="Top"/>
-        <Label x:Name="label3" Content="{Binding PoolFrames}" HorizontalAlignment="Left" Margin="119,110,0,0" VerticalAlignment="Top" Height="30" Width="73"/>
-        <Label x:Name="label4" Content="Back Log" HorizontalAlignment="Left"  VerticalAlignment="Top" Margin="39,138,0,0"/>
-        <Label x:Name="label5" Content="{Binding BackLog}" HorizontalAlignment="Left" Margin="119,138,0,0" VerticalAlignment="Top" Height="30" Width="73"/>
+        <Label x:Name="label4" Content="Back Log" HorizontalAlignment="Left"  VerticalAlignment="Top" Margin="39,110,0,0"/>
+        <Label x:Name="label5" Content="{Binding BackLog}" HorizontalAlignment="Left" Margin="119,110,0,0" VerticalAlignment="Top" Height="30" Width="73"/>
         <Button x:Name="button" Content="Start" HorizontalAlignment="Left" Margin="341,69,0,0" VerticalAlignment="Top" Width="75" Command="{Binding Start}"/>
         <Button x:Name="button1" Content="Stop" HorizontalAlignment="Left" Margin="341,93,0,0" VerticalAlignment="Top" Width="75" Command="{Binding Stop}"/>
+        <Label x:Name="elapsed" Content="Elapsed" HorizontalAlignment="Left"  VerticalAlignment="Top" Margin="39,141,0,0"/>
+        <Label x:Name="elapsedTime" Content="{Binding Elapsed}" HorizontalAlignment="Left"  VerticalAlignment="Top" Margin="119,140,0,0"/>
 
     </Grid>
 </Window>

@@ -11,6 +11,7 @@ using PipelineSample.Modules;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Runtime;
 
 namespace PipelineSample.ViewModel
 {
@@ -31,14 +32,14 @@ namespace PipelineSample.ViewModel
         KinectSensor sensor;
 
         BackgroundPipeline<KinectFrame> pipeline;
-        FramePool<KinectFrame> framePool;
         double pipelineFps;
         double renderFps;
-        double poolFrames;
         double backLog;
+        TimeSpan elapsed;
         string log;
         Stopwatch stopWatch;
         int framesRendered;
+        private DummyModule dummyModule;
 
         public double FPS
         {
@@ -52,20 +53,7 @@ namespace PipelineSample.ViewModel
                 RaisePropertyChanged(() => this.FPS);
             }
         }
-
-        public double PoolFrames
-        {
-            get
-            {
-                return this.poolFrames;
-            }
-            private set
-            {
-                this.poolFrames = value;
-                RaisePropertyChanged(() => this.PoolFrames);
-            }
-        }
-
+             
         public double BackLog
         {
             get
@@ -109,6 +97,20 @@ namespace PipelineSample.ViewModel
         public RelayCommand Start { get; private set; }
         public RelayCommand Stop { get; private set; }
 
+        public TimeSpan Elapsed
+        {
+            get
+            {
+                return elapsed;
+            }
+
+            set
+            {
+                elapsed = value;
+                RaisePropertyChanged(()=>this.Elapsed);
+            }
+        }
+
         /// <summary>
         /// Initializes a new instance of the MainViewModel class.
         /// </summary>
@@ -118,23 +120,25 @@ namespace PipelineSample.ViewModel
 
             sensor.Open();
 
-            var frameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Color);
+            var frameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Color | FrameSourceTypes.Depth | FrameSourceTypes.Infrared);
             frameReader.MultiSourceFrameArrived += (sender, args) => {
-                this.RenderFrame();
+                this.RenderFrame(args.FrameReference.AcquireFrame());
             };
 
             // create a background pipeline and pre-allocate 2 seconds of frames
             this.pipeline = new BackgroundPipeline<KinectFrame>(Kinect2Metrics.CameraRate);
-            this.framePool = new FramePool<KinectFrame>(this.CreateFrame, 160);
-            this.pipeline.Modules.Add(new DummyModule { IsEnabled = true });
+            this.dummyModule = new DummyModule { IsEnabled = true };
+            this.pipeline.Modules.Add(this.dummyModule);
 
             pipeline.Timer.Tick += (sender, args) =>
             {
-                this.FPS = ((PipelineTimer)sender).FPS;
-                this.PoolFrames = this.framePool.Count;
+                this.FPS = this.pipeline.Timer.FPS;
+                this.Elapsed = this.pipeline.Timer.ElapsedTime;
                 this.BackLog = pipeline.Count;
-
-                this.Log += $"{this.pipeline.Timer.ElapsedTime},{this.RenderFPS},{this.FPS},{this.PoolFrames},{this.BackLog}\n";
+                var gc1 = GC.CollectionCount(1);
+                var gc2 = GC.CollectionCount(2);
+                var memory = Process.GetCurrentProcess().PrivateMemorySize64 / 100000000;
+                this.Log += $"{this.pipeline.Timer.ElapsedTime},{this.RenderFPS},{this.FPS},{this.BackLog},{gc1},{gc2},{memory},{this.dummyModule.MeanInterval}\n";
             };
 
             this.pipeline.FrameStart += (sender, frame) =>
@@ -144,7 +148,7 @@ namespace PipelineSample.ViewModel
             // return the frame to the pool
             this.pipeline.FrameComplete += (sender, frame) =>
             {
-                this.framePool.PutFrame(frame);
+                frame.Dispose();
             };
 
             this.pipeline.QueueComplete += (sender, args) =>
@@ -161,21 +165,20 @@ namespace PipelineSample.ViewModel
             this.RenderFPS = 0;
         }
 
-        private async void RenderFrame()
+        private async void RenderFrame(MultiSourceFrame kinectFrame)
         {
             this.calculateFPS();
 
             if (!this.pipeline.Timer.IsRunning) return;
 
-            var frame = this.framePool.GetFrame();
-
-            if (frame.ColorPixels == null) return;
-
+            var frame = new KinectFrame();
+            
             frame.Id = Guid.NewGuid();
+            frame.RelativeTime = this.pipeline.Timer.ElapsedTime;
+
             await this.pipeline.Enqueue(frame);
 
             this.FPS = this.pipeline.Timer.FPS;
-            this.PoolFrames = this.framePool.Count;
             this.BackLog = pipeline.Count;
         }
 
@@ -193,7 +196,7 @@ namespace PipelineSample.ViewModel
                 
         private void StartPipeline()
         {
-            this.Log = "RenderFPS, PipelineFPS, PoolFrames, PipelineBackLog\n";
+            this.Log = "Elapsed, RenderFPS, PipelineFPS, PipelineBackLog, Gen1, Gen2, Memory, Interval\n";
             this.pipeline.Start();
             this.Start.RaiseCanExecuteChanged();
             this.Stop.RaiseCanExecuteChanged();          
@@ -205,18 +208,6 @@ namespace PipelineSample.ViewModel
             this.Start.RaiseCanExecuteChanged();
             this.Stop.RaiseCanExecuteChanged();
             Console.WriteLine($"{DateTime.Now.ToString("ddMMyyyyhhmmssfffff")}: Pipeline Stopped");
-        }
-
-        private KinectFrame CreateFrame()
-        {
-            var frame = new KinectFrame
-            {
-                ColorPixels = new byte[Kinect2Metrics.ColorBufferLength],
-                InfraredPixels = new ushort[Kinect2Metrics.IRFrameWidth * Kinect2Metrics.IRFrameHeight],
-                DepthPixels = new ushort[Kinect2Metrics.DepthFrameWidth * Kinect2Metrics.DepthFrameHeight],
-            };
-            
-            return frame;
         }
     }
 }
