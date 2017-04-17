@@ -40,6 +40,7 @@ namespace PipelineSample.ViewModel
         Stopwatch stopWatch;
         int framesRendered;
         private DummyModule dummyModule;
+        private MultiSourceFrameReader frameReader;
 
         public double FPS
         {
@@ -117,13 +118,11 @@ namespace PipelineSample.ViewModel
         public MainViewModel()
         {
             sensor = KinectSensor.GetDefault();
+           
+            this.frameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Color | FrameSourceTypes.Depth | FrameSourceTypes.Infrared);
+            this.frameReader.MultiSourceFrameArrived += FrameReader_MultiSourceFrameArrived;
 
             sensor.Open();
-
-            var frameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Color | FrameSourceTypes.Depth | FrameSourceTypes.Infrared);
-            frameReader.MultiSourceFrameArrived += (sender, args) => {
-                this.RenderFrame(args.FrameReference.AcquireFrame());
-            };
 
             // create a background pipeline and pre-allocate 2 seconds of frames
             this.pipeline = new BackgroundPipeline<KinectFrame>(Kinect2Metrics.CameraRate);
@@ -165,18 +164,32 @@ namespace PipelineSample.ViewModel
             this.RenderFPS = 0;
         }
 
-        private void RenderFrame(MultiSourceFrame kinectFrame)
+        private void FrameReader_MultiSourceFrameArrived(object sender, MultiSourceFrameArrivedEventArgs args)
         {
+            this.RenderFrame(args.FrameReference.AcquireFrame());
+        }
+
+        private void RenderFrame(MultiSourceFrame kinectFrame)
+        {   
             this.calculateFPS();
 
             if (!this.pipeline.Timer.IsRunning) return;
-            
-            var frame = new KinectFrame();
-            
-            frame.Id = Guid.NewGuid();
-            frame.RelativeTime = this.pipeline.Timer.ElapsedTime;
 
-            this.pipeline.Enqueue(frame);
+            using (var depthFrame = kinectFrame.DepthFrameReference.AcquireFrame())
+            using (var colorFrame = kinectFrame.ColorFrameReference.AcquireFrame())
+            using (var irFrame = kinectFrame.InfraredFrameReference.AcquireFrame())
+            {
+                var frame = new KinectFrame();
+
+                frame.Id = Guid.NewGuid();
+                frame.RelativeTime = this.pipeline.Timer.ElapsedTime;
+
+                depthFrame.CopyFrameDataToIntPtr(frame.InfraredPixels, (uint)Kinect2Metrics.DepthBufferLength);
+                colorFrame.CopyConvertedFrameDataToIntPtr(frame.ColorPixels, (uint)Kinect2Metrics.ColorBufferLength, ColorImageFormat.Bgra);
+                irFrame.CopyFrameDataToIntPtr(frame.InfraredPixels, (uint)Kinect2Metrics.IRBufferLength);
+                
+                this.pipeline.Enqueue(frame);
+            }
 
             this.FPS = this.pipeline.Timer.FPS;
             this.BackLog = pipeline.Count;
@@ -197,6 +210,7 @@ namespace PipelineSample.ViewModel
         private void StartPipeline()
         {
             this.Log = "Elapsed, RenderFPS, PipelineFPS, PipelineBackLog, Gen1, Gen2, Memory, Interval\n";
+            
             this.pipeline.Start();
             this.Start.RaiseCanExecuteChanged();
             this.Stop.RaiseCanExecuteChanged();          
