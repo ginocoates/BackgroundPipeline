@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace BackgroundPipeline
 {
-    public abstract class PipelineModuleBase<T> : IPipelineModule<T>
+    public abstract class PipelineModuleBase<T> : IPipelineModule<T>, IDisposable
     {
         public bool IsEnabled
         {
@@ -14,7 +14,16 @@ namespace BackgroundPipeline
             set;
         }
 
-        public abstract void Dispose();
+        ~PipelineModuleBase(){
+            Dispose(false);
+        }
+
+        public void Dispose() {
+            Dispose(true);
+        }
+
+        protected virtual void Dispose(bool disposing) {
+        }
 
         public abstract T Process(T frame);
     }

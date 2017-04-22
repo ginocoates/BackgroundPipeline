@@ -1,17 +1,11 @@
-using System;
 using BackgroundPipeline;
 using GalaSoft.MvvmLight;
-using PipelineSample;
-using Microsoft.Kinect;
-using System.Runtime.InteropServices;
 using GalaSoft.MvvmLight.Command;
-using System.IO;
-using System.Threading;
+using Microsoft.Kinect;
 using PipelineSample.Modules;
-using System.Linq;
-using System.Threading.Tasks;
+using System;
 using System.Diagnostics;
-using System.Runtime;
+using System.IO;
 
 namespace PipelineSample.ViewModel
 {
@@ -27,7 +21,7 @@ namespace PipelineSample.ViewModel
     /// See http://www.galasoft.ch/mvvm
     /// </para>
     /// </summary>
-    public class MainViewModel : ViewModelBase
+    public class MainViewModel : ViewModelBase, IDisposable
     {
         KinectSensor sensor;
 
@@ -46,12 +40,12 @@ namespace PipelineSample.ViewModel
         {
             get
             {
-                return this.pipelineFps;
+                return pipelineFps;
             }
             private set
             {
-                this.pipelineFps = value;
-                RaisePropertyChanged(() => this.FPS);
+                pipelineFps = value;
+                RaisePropertyChanged(() => FPS);
             }
         }
              
@@ -59,12 +53,12 @@ namespace PipelineSample.ViewModel
         {
             get
             {
-                return this.backLog;
+                return backLog;
             }
             private set
             {
-                this.backLog = value;
-                RaisePropertyChanged(() => this.BackLog);
+                backLog = value;
+                RaisePropertyChanged(() => BackLog);
             }
         }
 
@@ -72,12 +66,12 @@ namespace PipelineSample.ViewModel
         {
             get
             {
-                return this.log;
+                return log;
             }
             private set
             {
-                this.log = value;
-                RaisePropertyChanged(() => this.Log);
+                log = value;
+                RaisePropertyChanged(() => Log);
             }
         }
 
@@ -91,7 +85,7 @@ namespace PipelineSample.ViewModel
             set
             {
                 renderFps = value;
-                RaisePropertyChanged(() => this.RenderFPS);
+                RaisePropertyChanged(() => RenderFPS);
             }
         }
 
@@ -108,7 +102,7 @@ namespace PipelineSample.ViewModel
             set
             {
                 elapsed = value;
-                RaisePropertyChanged(()=>this.Elapsed);
+                RaisePropertyChanged(()=>Elapsed);
             }
         }
 
@@ -119,61 +113,61 @@ namespace PipelineSample.ViewModel
         {
             sensor = KinectSensor.GetDefault();
            
-            this.frameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Color | FrameSourceTypes.Depth | FrameSourceTypes.Infrared);
-            this.frameReader.MultiSourceFrameArrived += FrameReader_MultiSourceFrameArrived;
+            frameReader = sensor.OpenMultiSourceFrameReader(FrameSourceTypes.Color | FrameSourceTypes.Depth | FrameSourceTypes.Infrared);
+            frameReader.MultiSourceFrameArrived += FrameReader_MultiSourceFrameArrived;
 
             sensor.Open();
 
             // create a background pipeline and pre-allocate 2 seconds of frames
-            this.pipeline = new BackgroundPipeline<KinectFrame>(Kinect2Metrics.CameraRate);
-            this.dummyModule = new DummyModule { IsEnabled = true };
-            this.pipeline.Modules.Add(this.dummyModule);
+            pipeline = new BackgroundPipeline<KinectFrame>(Kinect2Metrics.CameraRate);
+            dummyModule = new DummyModule { IsEnabled = true };
+            pipeline.Modules.Add(dummyModule);
 
             pipeline.Timer.Tick += (sender, args) =>
             {
-                this.FPS = this.pipeline.Timer.FPS;
-                this.Elapsed = this.pipeline.Timer.ElapsedTime;
-                this.BackLog = pipeline.Count;
+                FPS = pipeline.Timer.FPS;
+                Elapsed = pipeline.Timer.ElapsedTime;
+                BackLog = pipeline.Count;
                 var gc1 = GC.CollectionCount(1);
                 var gc2 = GC.CollectionCount(2);
                 var memory = Process.GetCurrentProcess().PrivateMemorySize64 / 100000000;
-                this.Log += $"{this.pipeline.Timer.ElapsedTime},{this.RenderFPS},{this.FPS},{this.BackLog},{gc1},{gc2},{memory},{this.dummyModule.MeanInterval}\n";
+                Log += $"{pipeline.Timer.ElapsedTime},{RenderFPS},{FPS},{BackLog},{gc1},{gc2},{memory},{dummyModule.MeanInterval}\n";
             };
 
-            this.pipeline.FrameStart += (sender, frame) =>
+            pipeline.FrameStart += (sender, frame) =>
             {
             };
 
             // return the frame to the pool
-            this.pipeline.FrameComplete += (sender, frame) =>
+            pipeline.FrameComplete += (sender, frame) =>
             {
                 frame.Dispose();
             };
 
-            this.pipeline.QueueComplete += (sender, args) =>
+            pipeline.QueueComplete += (sender, args) =>
             {
                 Console.WriteLine($"{DateTime.Now.ToString("ddMMyyyyhhmmssfffff")}: Queue Complete");
-                File.WriteAllText($"report-{DateTime.Now.ToString("ddMMyyyy-hhmmss")}.csv", this.Log);
+                File.WriteAllText($"report-{DateTime.Now.ToString("ddMMyyyy-hhmmss")}.csv", Log);
             };
 
-            this.Start = new RelayCommand(this.StartPipeline, () => !this.pipeline.Timer.IsRunning);
-            this.Stop = new RelayCommand(this.StopPipeline, () => this.pipeline.Timer.IsRunning);
+            Start = new RelayCommand(StartPipeline, () => !pipeline.Timer.IsRunning);
+            Stop = new RelayCommand(StopPipeline, () => pipeline.Timer.IsRunning);
 
-            this.stopWatch = new Stopwatch();
-            this.stopWatch.Start();
-            this.RenderFPS = 0;
+            stopWatch = new Stopwatch();
+            stopWatch.Start();
+            RenderFPS = 0;
         }
 
         private void FrameReader_MultiSourceFrameArrived(object sender, MultiSourceFrameArrivedEventArgs args)
         {
-            this.RenderFrame(args.FrameReference.AcquireFrame());
+            RenderFrame(args.FrameReference.AcquireFrame());
         }
 
         private void RenderFrame(MultiSourceFrame kinectFrame)
         {   
-            this.calculateFPS();
+            calculateFPS();
 
-            if (!this.pipeline.Timer.IsRunning) return;
+            if (!pipeline.Timer.IsRunning) return;
 
             using (var depthFrame = kinectFrame.DepthFrameReference.AcquireFrame())
             using (var colorFrame = kinectFrame.ColorFrameReference.AcquireFrame())
@@ -182,46 +176,62 @@ namespace PipelineSample.ViewModel
                 var frame = new KinectFrame();
 
                 frame.Id = Guid.NewGuid();
-                frame.RelativeTime = this.pipeline.Timer.ElapsedTime;
+                frame.RelativeTime = pipeline.Timer.ElapsedTime;
 
                 depthFrame.CopyFrameDataToIntPtr(frame.InfraredPixels, (uint)Kinect2Metrics.DepthBufferLength);
                 colorFrame.CopyConvertedFrameDataToIntPtr(frame.ColorPixels, (uint)Kinect2Metrics.ColorBufferLength, ColorImageFormat.Bgra);
                 irFrame.CopyFrameDataToIntPtr(frame.InfraredPixels, (uint)Kinect2Metrics.IRBufferLength);
                 
-                this.pipeline.Enqueue(frame);
+                pipeline.Enqueue(frame);
             }
 
-            this.FPS = this.pipeline.Timer.FPS;
-            this.BackLog = pipeline.Count;
+            FPS = pipeline.Timer.FPS;
+            BackLog = pipeline.Count;
         }
 
         private void calculateFPS()
         {
-            this.framesRendered++;
+            framesRendered++;
 
-            if (this.stopWatch.Elapsed.TotalSeconds >= 1)
+            if (stopWatch.Elapsed.TotalSeconds >= 1)
             {
-                this.RenderFPS = Math.Round(this.framesRendered / this.stopWatch.Elapsed.TotalSeconds);
-                this.framesRendered = 0;
-                this.stopWatch.Restart();
+                RenderFPS = Math.Round(framesRendered / stopWatch.Elapsed.TotalSeconds);
+                framesRendered = 0;
+                stopWatch.Restart();
             }
         }
                 
         private void StartPipeline()
         {
-            this.Log = "Elapsed, RenderFPS, PipelineFPS, PipelineBackLog, Gen1, Gen2, Memory, Interval\n";
+            Log = "Elapsed, RenderFPS, PipelineFPS, PipelineBackLog, Gen1, Gen2, Memory, Interval\n";
             
-            this.pipeline.Start();
-            this.Start.RaiseCanExecuteChanged();
-            this.Stop.RaiseCanExecuteChanged();          
+            pipeline.Start();
+            Start.RaiseCanExecuteChanged();
+            Stop.RaiseCanExecuteChanged();          
         }
 
         private void StopPipeline()
         {
-            this.pipeline.Stop();
-            this.Start.RaiseCanExecuteChanged();
-            this.Stop.RaiseCanExecuteChanged();
+            pipeline.Stop();
+            Start.RaiseCanExecuteChanged();
+            Stop.RaiseCanExecuteChanged();
             Console.WriteLine($"{DateTime.Now.ToString("ddMMyyyyhhmmssfffff")}: Pipeline Stopped");
+        }
+
+        ~MainViewModel() {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (disposing) {
+                pipeline.Dispose();
+            }
         }
     }
 }

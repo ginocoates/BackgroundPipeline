@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace BackgroundPipeline
 {
-    public class PipelineTimer
+    public class PipelineTimer : IDisposable
     {
         private int tickCount;
         private Stopwatch stopWatch;
@@ -44,7 +44,7 @@ namespace BackgroundPipeline
 
         public PipelineTimer(int frequencyHz)
         {
-            this.stopWatch = new Stopwatch();
+            stopWatch = new Stopwatch();
             this.frequencyHz = (int)(1000.0f / frequencyHz);
             timer = new Timer(this.CaptureTimer_Elapsed, null, Timeout.Infinite, Timeout.Infinite);            
         }
@@ -55,10 +55,10 @@ namespace BackgroundPipeline
         internal void Start()
         {
             this.StartTime = DateTime.Now;
-            timer.Change(0, this.frequencyHz);
-            this.tickCount = 0;
-            this.stopWatch.Start();
-            this.IsRunning = true;
+            timer.Change(0, frequencyHz);
+            tickCount = 0;
+            stopWatch.Start();
+            IsRunning = true;
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace BackgroundPipeline
         internal void Stop() 
         {
             timer.Change(Timeout.Infinite, Timeout.Infinite);
-            this.stopWatch.Stop();
+            stopWatch.Stop();
             this.IsRunning = false;
         }
 
@@ -86,9 +86,9 @@ namespace BackgroundPipeline
         /// </summary>
         internal void Increment()
         {
-            if (!this.IsRunning) return;
-            this.tickCount++;
-            this.calculateFPS();
+            if (!IsRunning) return;
+            tickCount++;
+            calculateFPS();
         }
 
         /// <summary>
@@ -98,22 +98,28 @@ namespace BackgroundPipeline
         {
             if (this.stopWatch.Elapsed.TotalSeconds >= 1)
             {
-                this.FPS = Math.Round(this.tickCount / this.stopWatch.Elapsed.TotalSeconds);
-                this.tickCount = 0;
-                this.stopWatch.Restart();
+                FPS = Math.Round(tickCount / stopWatch.Elapsed.TotalSeconds);
+                tickCount = 0;
+                stopWatch.Restart();
             }
+        }
+
+        ~PipelineTimer()
+        {
+            Dispose(false);
         }
 
         public void Dispose()
         {
-            this.Dispose(true);
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         private void Dispose(bool disposing)
         {
             if (disposing)
             {
-                this.timer.Dispose();
+                timer.Dispose();
             }
         }
     }

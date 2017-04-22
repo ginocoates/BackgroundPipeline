@@ -25,11 +25,6 @@ namespace PipelineSample.Modules
 
         private TimeSpan LastTimestamp;
 
-        public override void Dispose()
-        {
-
-        }
-
         public override KinectFrame Process(KinectFrame frame)
         {
             numFrames++;

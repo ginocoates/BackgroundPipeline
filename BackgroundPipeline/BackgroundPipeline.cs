@@ -38,7 +38,7 @@ namespace BackgroundPipeline
         {
             get
             {
-                return frameQueue.Count;
+                return FrameQueue.Count;
             }
         }
 
@@ -49,7 +49,7 @@ namespace BackgroundPipeline
             // create a concurrent queue for thread safe FIFO processing.
             // wrapped in a blocking collection so that the pipeling blocks and waits for frames
             // to process
-            frameQueue = new BlockingCollection<T>(new ConcurrentQueue<T>());
+            FrameQueue = new BlockingCollection<T>(new ConcurrentQueue<T>());
 
             Timer.Start();
 
@@ -58,14 +58,14 @@ namespace BackgroundPipeline
             // run on a new thread
             processingTask = Task.Factory.StartNew(() =>
             {
-                while (frameQueue != null && !frameQueue.IsCompleted && !cancellationToken.IsCancellationRequested)
+                while (FrameQueue != null && !FrameQueue.IsCompleted && !cancellationToken.IsCancellationRequested)
                 {
                     try
                     {
                         // blocks until frame is available
                         T frame;
 
-                        if (frameQueue.TryTake(out frame, -1, cancellationToken.Token))
+                        if (FrameQueue.TryTake(out frame, -1, cancellationToken.Token))
                         {
                             ProcessFrame(frame);
                         }
@@ -86,7 +86,7 @@ namespace BackgroundPipeline
         {
             if (!Timer.IsRunning) return;
             Timer.Stop();
-            frameQueue.CompleteAdding();
+            FrameQueue.CompleteAdding();
         }
 
         public void Abort()
@@ -136,8 +136,8 @@ namespace BackgroundPipeline
 
             try
             {
-                if (frameQueue.IsCompleted || frameQueue.IsAddingCompleted || cancellationToken.IsCancellationRequested) return;
-                frameQueue.TryAdd(frame, -1, cancellationToken.Token);
+                if (FrameQueue.IsCompleted || FrameQueue.IsAddingCompleted || cancellationToken.IsCancellationRequested) return;
+                FrameQueue.TryAdd(frame, -1, cancellationToken.Token);
             }
             catch (InvalidOperationException ex)
             {
@@ -145,9 +145,22 @@ namespace BackgroundPipeline
             }
         }
 
-        public bool IsCompleted { get { return frameQueue == null || frameQueue.IsCompleted; } }
+        public bool IsCompleted { get { return FrameQueue == null || FrameQueue.IsCompleted; } }
 
-        public bool IsAddingCompleted { get { return frameQueue == null || frameQueue.IsAddingCompleted; } }
+        public bool IsAddingCompleted { get { return FrameQueue == null || FrameQueue.IsAddingCompleted; } }
+
+        public BlockingCollection<T> FrameQueue
+        {
+            get
+            {
+                return frameQueue;
+            }
+
+            private set
+            {
+                frameQueue = value;
+            }
+        }
 
         public void Dispose()
         {
@@ -164,7 +177,7 @@ namespace BackgroundPipeline
                     {
                         module.Dispose();
                     }
-                    frameQueue.Dispose();
+                    FrameQueue.Dispose();
                     Timer.Dispose();
                 }
                 catch (Exception ex)
