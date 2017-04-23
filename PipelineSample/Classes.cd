@@ -5,6 +5,7 @@
     <TypeIdentifier />
     <ShowAsAssociation>
       <Property Name="Timer" />
+      <Property Name="FrameQueue" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Property Name="Modules" />
@@ -12,12 +13,17 @@
     <Lollipop Position="0.2" />
   </Class>
   <Class Name="BackgroundPipeline.PipelineTimer">
-    <Position X="5.5" Y="2.75" Width="1.75" />
+    <Position X="5.5" Y="4" Width="1.75" />
+    <TypeIdentifier />
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="System.Collections.Concurrent.BlockingCollection&lt;T&gt;" Collapsed="true">
+    <Position X="5.5" Y="1" Width="2.75" />
     <TypeIdentifier />
     <Lollipop Position="0.2" />
   </Class>
   <Interface Name="BackgroundPipeline.IPipelineModule&lt;T&gt;">
-    <Position X="5.5" Y="0.75" Width="1.75" />
+    <Position X="5.5" Y="2" Width="1.75" />
     <TypeIdentifier />
   </Interface>
   <Font Name="Segoe UI" Size="9" />

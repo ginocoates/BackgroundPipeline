@@ -77,7 +77,7 @@ namespace BackgroundPipeline
 
                 }
 
-                OnQueueComplate();
+                OnQueueComplete();
 
             }, cancellationToken.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
@@ -120,7 +120,7 @@ namespace BackgroundPipeline
         }
 
 
-        private void OnQueueComplate()
+        private void OnQueueComplete()
         {
             QueueComplete?.Invoke(this, EventArgs.Empty);
         }
