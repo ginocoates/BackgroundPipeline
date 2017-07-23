@@ -6,9 +6,9 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("BackgroundPipeline")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("A multithreaded background processing pipeline")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Gino Coates")]
 [assembly: AssemblyProduct("BackgroundPipeline")]
 [assembly: AssemblyCopyright("Copyright ©  2017")]
 [assembly: AssemblyTrademark("")]
